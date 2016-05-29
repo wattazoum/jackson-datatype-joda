@@ -5,12 +5,16 @@ import java.text.SimpleDateFormat;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.joda.time.*;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
 
 public class JodaSerializationTest extends JodaTestBase
 {
@@ -268,4 +272,49 @@ public class JodaSerializationTest extends JodaTestBase
         assertEquals(quote("2013-08"), json);
     }
 
+    public void testWhenSerializingJodaTime_thenCorrect()
+            throws JsonProcessingException
+    {
+
+        class A
+        {
+            DateTime aDate;
+
+            A()
+            {
+                aDate = new DateTime(2014, 12, 20, 2, 30, DateTimeZone.forID("Europe/London"));
+            }
+
+            public DateTime getADate()
+            {
+                return aDate;
+            }
+        }
+
+        class B extends A
+        {
+            String uuid;
+
+            private B()
+            {
+                super();
+                uuid = "foobar";
+            }
+
+            public String getUuid()
+            {
+                return uuid;
+            }
+        }
+
+        B b = new B();
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JodaModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        String result = mapper.writeValueAsString(b);
+        assertThat(result, containsString("2014-12-20T02:30:00.000Z"));
+
+    }
 }
